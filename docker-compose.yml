@@ -14,8 +14,10 @@ services:
     environment:
       - FLASK_URL=http://backend:5001
       - NEXTAUTH_URL=http://localhost:3000
-      - NEXTAUTH_SECRET=this is a test secret please change
-      - DATABASE_URL=postgresql://chatbot_user:wangting1@host.docker.internal:5432/chatbot?schema=chatbot
+      # NEXTAUTH_SECRET should be provided via .env (never commit real secrets)
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      # Use an env var for the database URL instead of hard-coding credentials.
+      - DATABASE_URL=${DATABASE_URL}
       - AUTH_TRUST_HOST=true
     depends_on:
       - backend
