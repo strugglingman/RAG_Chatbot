@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFilters } from './filters-context';
 import { useChat } from './chat-context';
 import ShimmerBubble from './ShimmerBubble';
+import { looksLikeInjection } from '../lib/safety';
 
 type Role = 'user' | 'assistant';
 type Msg = { role: Role; content: string; ts?: number };
@@ -144,6 +145,16 @@ export default function ChatPage() {
 
   async function onSend() {
     if (!input.trim() || streamingRef.current) return;
+    const { flagged, error } = looksLikeInjection(input);
+    console.log('Injection check:', { flagged, error });
+    if (flagged) {
+      const msgs: Msg[] = [...messages, { role: 'user', content: error, ts: Date.now() }];
+      setMessages(msgs);
+      setContexts([]);
+      setInput('');
+      return;
+    }
+
     streamingRef.current = true;
     setBusy(true);
 
@@ -178,6 +189,7 @@ export default function ChatPage() {
     let startContext = false;
     let contextStr = '';
     try {
+      setContexts([]);
       for await (const chunk of streamChat(payload)) {
         if (chunk.includes('__CONTEXT__:') || startContext) {
           startContext = true;
