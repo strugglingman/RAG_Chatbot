@@ -1,0 +1,67 @@
+"""
+Files routes blueprint.
+Handles file listing endpoint.
+"""
+import os
+import json
+from flask import Blueprint, request, jsonify, g
+from src.middleware.auth import require_identity
+from src.utils.file_utils import get_upload_dir
+from src.config.settings import Config
+
+files_bp = Blueprint('files', __name__)
+
+UPLOAD_BASE = Config.UPLOAD_BASE
+FOLDER_SHARED = Config.FOLDER_SHARED
+
+
+@files_bp.route('/files', methods=['GET'])
+@require_identity
+def list_files():
+    """List all files accessible to the current user."""
+    dept_id = g.identity.get("dept_id", "")
+    if not dept_id:
+        return jsonify({"error": "No organization ID provided"}), 400
+    user_id = g.identity.get("user_id", "")
+    if not user_id:
+        return jsonify({"error": "No user ID provided"}), 400
+
+    files_info = []
+    
+    # List this user's files first
+    dir_user = get_upload_dir(dept_id, user_id)
+    if dir_user:
+        files = os.listdir(dir_user)
+        for f in files:
+            if f.endswith("meta.json"):
+                with open(os.path.join(dir_user, f), "r", encoding="utf-8") as info_f:
+                    info = json.load(info_f)
+                    if info.get("dept_id", "") == dept_id and (
+                        (not info.get("file_for_user", False))
+                        or info.get("user_id") == user_id
+                    ):
+                        # Include a sanitized or relative file path
+                        info["file_path"] = os.path.relpath(
+                            info.get("file_path", ""), UPLOAD_BASE
+                        )
+                        files_info.append(info)
+
+    # List shared files next
+    dir_shared = get_upload_dir(dept_id, FOLDER_SHARED)
+    if dir_shared:
+        files = os.listdir(dir_shared)
+        for f in files:
+            if f.endswith("meta.json"):
+                with open(os.path.join(dir_shared, f), "r", encoding="utf-8") as info_f:
+                    info = json.load(info_f)
+                    if info.get("dept_id", "") == dept_id and (
+                        (not info.get("file_for_user", False))
+                        or info.get("user_id") == user_id
+                    ):
+                        # Include a sanitized or relative file path
+                        info["file_path"] = os.path.relpath(
+                            info.get("file_path", ""), UPLOAD_BASE
+                        )
+                        files_info.append(info)
+
+    return jsonify({"files": files_info}), 200

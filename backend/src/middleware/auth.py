@@ -1,0 +1,58 @@
+"""Authentication middleware"""
+import jwt
+from functools import wraps
+from flask import request, jsonify, g
+
+
+def load_identity(secret: str, issuer: str, audience: str):
+    """Load identity from JWT token"""
+    g.identity = None
+    if not secret:
+        return
+    
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return
+    
+    token = auth_header.split(" ", 1)[1].strip()
+    try:
+        claims = jwt.decode(
+            token,
+            secret,
+            algorithms=["HS256"],
+            audience=audience,
+            issuer=issuer,
+            options={"require": ["exp", "iat", "aud", "iss"]}
+        )
+    except Exception:
+        return
+    
+    email = claims.get("email", "")
+    dept = claims.get("dept", "")
+    sid = claims.get("sid", "")
+    if not email or not dept or not sid:
+        return
+    
+    g.identity = {
+        "user_id": email,
+        "dept_id": dept,
+        "sid": sid
+    }
+
+
+def require_identity(fn):
+    """Decorator to require valid authentication"""
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        identity = getattr(g, 'identity', None)
+        if not identity:
+            return jsonify({"error": "Unauthorized"}), 401
+        
+        user_id = identity.get('user_id', '')
+        dept_id = identity.get('dept_id', '')
+        sid = identity.get('sid', '')
+        if not user_id or not dept_id or not sid:
+            return jsonify({"error": "Unauthorized"}), 401
+        
+        return fn(*args, **kwargs)
+    return wrapper
