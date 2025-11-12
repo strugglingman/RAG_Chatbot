@@ -2,6 +2,7 @@
 Files routes blueprint.
 Handles file listing endpoint.
 """
+
 import os
 import json
 from flask import Blueprint, request, jsonify, g
@@ -9,13 +10,13 @@ from src.middleware.auth import require_identity
 from src.utils.file_utils import get_upload_dir
 from src.config.settings import Config
 
-files_bp = Blueprint('files', __name__)
+files_bp = Blueprint("files", __name__)
 
 UPLOAD_BASE = Config.UPLOAD_BASE
 FOLDER_SHARED = Config.FOLDER_SHARED
 
 
-@files_bp.route('/files', methods=['GET'])
+@files_bp.route("/files", methods=["GET"])
 @require_identity
 def list_files():
     """List all files accessible to the current user."""
@@ -27,9 +28,9 @@ def list_files():
         return jsonify({"error": "No user ID provided"}), 400
 
     files_info = []
-    
+
     # List this user's files first
-    dir_user = get_upload_dir(dept_id, user_id)
+    dir_user = get_upload_dir(base_path=UPLOAD_BASE, dept_id=dept_id, user_id=user_id)
     if dir_user:
         files = os.listdir(dir_user)
         for f in files:
@@ -47,7 +48,9 @@ def list_files():
                         files_info.append(info)
 
     # List shared files next
-    dir_shared = get_upload_dir(dept_id, FOLDER_SHARED)
+    dir_shared = get_upload_dir(
+        base_path=UPLOAD_BASE, dept_id=dept_id, user_id=FOLDER_SHARED
+    )
     if dir_shared:
         files = os.listdir(dir_shared)
         for f in files:

@@ -1,4 +1,5 @@
 """File handling utilities"""
+
 import os
 import hashlib
 from pathlib import Path
@@ -25,21 +26,21 @@ def canonical_path(base: Path, *sub_paths: str) -> Path:
 def validate_filename(f, allowed_extensions: list, mime_types: list) -> str:
     """Validate uploaded file"""
     filename = secure_filename(f.filename)
-    
+
     # Check file extension
     if not allowed_file(filename, allowed_extensions):
         return ""
-    
+
     # Check mime type
     head = f.stream.read(8192)
     f.stream.seek(0)
     mime = magic.Magic(mime=True).from_buffer(head) or ""
     mime = mime.lower()
-    
+
     mime_ok = any(mime.startswith(x) for x in mime_types)
     if not mime_ok:
         return ""
-    
+
     f.stream.seek(0)
     return filename
 
@@ -49,19 +50,23 @@ def allowed_file(filename: str, allowed_extensions: list) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in allowed_extensions
 
 
-def create_upload_dir(base_path: str, dept_id: str, user_id: str, dept_split: str = "|") -> str:
+def create_upload_dir(
+    base_path: str, dept_id: str, user_id: str, dept_split: str = "|"
+) -> str:
     """Create upload directory for user"""
     try:
         folders = dept_id.split(dept_split)
         upload_dir = Path(base_path)
         upload_dir = canonical_path(upload_dir, *folders, user_id)
         upload_dir.mkdir(parents=True, exist_ok=True)
-        return str(upload_dir)
-    except Exception:
-        return ""
+        return upload_dir
+    except:
+        return None
 
 
-def get_upload_dir(base_path: str, dept_id: str, user_id: str, dept_split: str = "|") -> str:
+def get_upload_dir(
+    base_path: str, dept_id: str, user_id: str, dept_split: str = "|"
+) -> str:
     """Get upload directory path"""
     folders = dept_id.split(dept_split)
     try:

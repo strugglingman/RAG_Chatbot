@@ -2,6 +2,7 @@
 Ingest routes blueprint.
 Handles document ingestion endpoint.
 """
+
 import os
 import json
 from flask import Blueprint, request, jsonify, g
@@ -11,13 +12,13 @@ from src.services.ingestion import ingest_one
 from src.services.retrieval import build_bm25
 from src.config.settings import Config
 
-ingest_bp = Blueprint('ingest', __name__)
+ingest_bp = Blueprint("ingest", __name__)
 
 UPLOAD_BASE = Config.UPLOAD_BASE
 FOLDER_SHARED = Config.FOLDER_SHARED
 
 
-@ingest_bp.route('/ingest', methods=['POST'])
+@ingest_bp.route("/ingest", methods=["POST"])
 @require_identity
 def ingest(collection):
     """
@@ -36,7 +37,7 @@ def ingest(collection):
         return jsonify({"message": "No correct file specified"}), 400
     if file_path != "ALL" and not os.path.exists(file_path):
         return jsonify({"message": "No correct file path specified"}), 400
-    
+
     dept_id = g.identity.get("dept_id", "")
     if not dept_id:
         return jsonify({"error": "No organization ID provided"}), 400
@@ -46,9 +47,9 @@ def ingest(collection):
 
     meta_data_all = []
     meta_data_files = []
-    
+
     # Load metadata from user directory
-    dir_user = get_upload_dir(dept_id, user_id)
+    dir_user = get_upload_dir(base_path=UPLOAD_BASE, dept_id=dept_id, user_id=user_id)
     if dir_user:
         meta_data_files = [f for f in os.listdir(dir_user) if f.endswith(".meta.json")]
         for mf in meta_data_files:
@@ -57,7 +58,9 @@ def ingest(collection):
                 meta_data_all.append(info)
 
     # Load metadata from shared directory
-    dir_shared = get_upload_dir(dept_id, FOLDER_SHARED)
+    dir_shared = get_upload_dir(
+        base_path=UPLOAD_BASE, dept_id=dept_id, user_id=FOLDER_SHARED
+    )
     if dir_shared:
         meta_data_files = [
             f for f in os.listdir(dir_shared) if f.endswith(".meta.json")

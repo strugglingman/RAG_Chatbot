@@ -2,17 +2,18 @@
 Organization structure routes blueprint.
 Handles organization structure endpoint.
 """
+
 import json
 from flask import Blueprint, jsonify
 from flask_limiter.util import get_remote_address
 from src.config.settings import Config
 
-org_bp = Blueprint('org', __name__)
+org_bp = Blueprint("org", __name__)
 
 ORG_STRUCTURE_FILE = Config.ORG_STRUCTURE_FILE
 
 
-@org_bp.route('/org-structure', methods=['GET'])
+@org_bp.route("/org-structure", methods=["GET"])
 def org_structure():
     """Get organization structure from JSON file."""
     try:

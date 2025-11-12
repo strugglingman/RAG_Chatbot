@@ -2,26 +2,23 @@
 Upload routes blueprint.
 Handles file upload endpoint.
 """
+
 import os
 import json
 from datetime import datetime
 from flask import Blueprint, request, jsonify, g
 from src.middleware.auth import require_identity
-from src.utils.file_utils import (
-    validate_filename,
-    create_upload_dir,
-    canonical_path
-)
+from src.utils.file_utils import validate_filename, create_upload_dir, canonical_path
 from src.services.ingestion import make_id
 from src.config.settings import Config
 
-upload_bp = Blueprint('upload', __name__)
+upload_bp = Blueprint("upload", __name__)
 
 UPLOAD_BASE = Config.UPLOAD_BASE
 FOLDER_SHARED = Config.FOLDER_SHARED
 
 
-@upload_bp.route('/upload', methods=['POST'])
+@upload_bp.route("/upload", methods=["POST"])
 @require_identity
 def upload():
     """Upload a file and save metadata for ingestion."""
@@ -34,14 +31,22 @@ def upload():
         return jsonify({"error": "No user ID or organization ID provided"}), 400
 
     f = request.files["file"]
-    filename = validate_filename(f)
+    filename = validate_filename(
+        f,
+        allowed_extensions=Config.ALLOWED_EXTENSIONS,
+        mime_types=Config.MIME_TYPES,
+    )
     if not filename:
         return jsonify({"error": "File is not valid mime type or extension"}), 400
 
     file_for_user = request.form.get("file_for_user", "0")
-    upload_dir = create_upload_dir(dept_id, FOLDER_SHARED)
+    upload_dir = create_upload_dir(
+        base_path=UPLOAD_BASE, dept_id=dept_id, user_id=FOLDER_SHARED
+    )
     if file_for_user == "1":
-        upload_dir = create_upload_dir(dept_id, user_id)
+        upload_dir = create_upload_dir(
+            base_path=UPLOAD_BASE, dept_id=dept_id, user_id=user_id
+        )
     if not upload_dir:
         return jsonify({"error": "Failed to create upload directory"}), 500
     file_path = canonical_path(upload_dir, filename)
