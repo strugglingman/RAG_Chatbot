@@ -9,7 +9,7 @@ import numpy as np
 from rank_bm25 import BM25Okapi
 from sentence_transformers import CrossEncoder
 from typing import Optional
-from safety import coverage_ok
+from src.utils.safety import coverage_ok
 
 # Configuration from environment
 CANDIDATES = 20
